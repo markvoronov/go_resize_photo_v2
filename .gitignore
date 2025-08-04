@@ -1,0 +1,64 @@
+Binaries for programs and plugins
+
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+Build directories
+
+bin/
+_build/
+
+Dependency directories (remove the comment below to include vendor)
+
+vendor/
+
+Go workspace file
+
+go.work
+
+Generated Go files
+
+*_generated.go
+
+IDE/editor configs
+
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+Vim swap files
+
+*.swp
+*~
+
+MacOS Finder files
+
+.DS_Store
+
+Logs and temp files
+
+.log
+tmp/
+
+Fyne resource objects
+
+*.syso
+
+Coverage files
+
+*.coverprofile
+
+Embedded assets (if any)
+
+assets/*.syso
+
+OS-specific files
+
+Thumbs.db
+

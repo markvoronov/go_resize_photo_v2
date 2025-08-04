@@ -2,61 +2,82 @@ package ui
 
 import (
 	"fmt"
-	"runtime"
-	"strconv"
-
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/data/validation"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/ncruces/zenity"
-
-	"resize/service"
+	"resize/service" // если пакет batch — кастомный
+	"runtime"
+	"strconv"
 )
 
 func Run(batch *service.Batch) {
 	a := app.NewWithID("app.resize")
 	w := a.NewWindow("Resize JPGs")
 
-	pathEntry := widget.NewEntry()
+	maxThreads := runtime.NumCPU()
+	defaultThreads := max(1, maxThreads-2)
 
-	pick := widget.NewButton("Select", func() {
+	// Путь
+	pathEntry := widget.NewEntry()
+	pathEntry.SetPlaceHolder("Select folder with JPG/JPEG files")
+
+	selectBtn := widget.NewButtonWithIcon("", theme.FolderOpenIcon(), func() {
 		if p, err := zenity.SelectFile(zenity.Directory()); err == nil {
 			pathEntry.SetText(p)
 		}
 	})
+	selectBtn.Importance = widget.LowImportance
 
+	// Потоки
 	thrEntry := widget.NewEntry()
-	thrEntry.SetText(strconv.Itoa(max(1, runtime.NumCPU()-2)))
+	thrEntry.SetText(strconv.Itoa(defaultThreads))
+	thrEntry.Validator = validation.NewRegexp(`^\d+$`, "Number only")
 
+	// Максимальный размер
 	maxEntry := widget.NewEntry()
 	maxEntry.SetText("3840")
+	maxEntry.Validator = validation.NewRegexp(`^\d+$`, "Number only")
 
+	// Прогресс
 	bar := widget.NewProgressBar()
+	bar.SetValue(0)
 
-	runBtn := widget.NewButton("Run", func() {
+	// Кнопка запуска
+	runBtn := widget.NewButton("▶ Run", func() {
 		t, _ := strconv.Atoi(thrEntry.Text)
 		m, _ := strconv.Atoi(maxEntry.Text)
 		batch.Workers = t
 		batch.MaxEdge = m
 		batch.OnProgress = func(d, tot int) {
-			fyne.DoAndWait(func() { bar.SetValue(float64(d) / float64(tot)) })
+			fyne.DoAndWait(func() {
+				bar.SetValue(float64(d) / float64(tot))
+			})
 		}
 		go func() {
 			if err := batch.Run(pathEntry.Text); err != nil {
-				fmt.Println("error:", err)
+				fmt.Println("Error:", err)
 			}
 		}()
 	})
 
-	w.SetContent(container.NewVBox(
-		container.NewHBox(pathEntry, pick),
-		container.NewHBox(widget.NewLabel("Threads:"), thrEntry),
-		container.NewHBox(widget.NewLabel("Max px:"), maxEntry),
+	// Сборка интерфейса
+	form := container.NewVBox(
+		container.NewBorder(nil, nil, nil, selectBtn, pathEntry),
+		widget.NewLabel("Supported formats: .jpg, .jpeg"),
+		container.NewGridWithColumns(2,
+			container.NewVBox(widget.NewLabel(fmt.Sprintf("Threads (max %d):", maxThreads)), thrEntry),
+			container.NewVBox(widget.NewLabel("Max image dimension (px):"), maxEntry),
+		),
 		bar,
 		runBtn,
-	))
-	w.Resize(fyne.NewSize(420, 280))
+	)
+
+	w.SetContent(container.NewPadded(form))
+	w.Resize(fyne.NewSize(440, 270))
 	w.ShowAndRun()
 }
 

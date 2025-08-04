@@ -17,18 +17,18 @@ func (Imaging) Resize(path string, max int) error {
 		return err
 	}
 	img, err := jpeg.Decode(in)
-	in.Close() // <--- закрываем сразу!
+	in.Close() // закрываем сразу!
 	if err != nil {
 		return err
 	}
+	// Определим размеры нового изображения
+	newWidth, newHeight := dims(img, max)
+	//if newWidth+newHeight == 0 {
+	//	return nil // изображение меньше, чем max
+	//}
+	dst := resize.Resize(newWidth, newHeight, img, resize.Lanczos3)
 
-	w, h := dims(img, max)
-	if w == 0 { // уже меньше max
-		return nil
-	}
-	dst := resize.Resize(w, h, img, resize.Lanczos3)
-
-	// ---------- пишем во временный файл ----------
+	// пишем во временный файл
 	tmp := path + ".tmp"
 	out, err := os.Create(tmp)
 	if err != nil {
@@ -38,20 +38,34 @@ func (Imaging) Resize(path string, max int) error {
 		out.Close()
 		return err
 	}
-	out.Close() // <--- тоже закрываем до Rename!
+	out.Close() // тоже закрываем до Rename!
 
-	// ---------- атомарная подмена ----------
+	// замена оригинального изображения обработанным
 	return os.Rename(tmp, path)
 }
 
-func dims(im image.Image, max int) (uint, uint) {
-	b := im.Bounds()
-	w, h := b.Dx(), b.Dy()
-	if w <= max && h <= max {
-		return 0, 0
+func dims(im image.Image, maxLength int) (uint, uint) {
+	bounds := im.Bounds()
+	width := bounds.Dx()
+	height := bounds.Dy()
+
+	newWidth := 0
+	newHeight := 0
+
+	if width > height {
+		newWidth = width
+	} else {
+		newHeight = height
 	}
-	if w >= h {
-		return uint(max), uint(float64(h) * float64(max) / float64(w))
+
+	if newHeight > maxLength {
+		newHeight = maxLength
 	}
-	return uint(float64(w) * float64(max) / float64(h)), uint(max)
+
+	if newWidth > maxLength {
+		newWidth = maxLength
+	}
+
+	return uint(newWidth), uint(newHeight)
+
 }
