@@ -42,7 +42,7 @@ go install github.com/markvoronov/go_resize_photo_v2/cmd/resize-gui@latest
 
 ```bash
 # Изменить все JPEG в папке /photos, максимальная сторона 1920px, 4 потока
-resize --cli --path=/photos --max=1920 --threads=4
+resize --cli --path="C:/users/images" --max=1920 --threads=4
 ```
 
 После старта утилита выведет прогресс в формате:
