@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"resize/logutil"
@@ -21,7 +22,11 @@ func main() {
 		slog.New(slog.NewTextHandler(os.Stderr, nil)).Error("init logger", "err", err)
 		os.Exit(1)
 	}
-	defer closeFn()
+	defer func() {
+		if err := closeFn(); err != nil {
+			fmt.Println("Не удалось закрыть логгер")
+		}
+	}()
 
 	// ядро-Batch создаём одно
 	b := &service.Batch{
