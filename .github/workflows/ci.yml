@@ -6,62 +6,48 @@ on:
   pull_request:
     branches: [main, develop]
 
-# ──────────────────────────────────────────────────────────────────────────────
-# общий shell-блок, чтобы не дублировать команды apt
-x-install-deps: &install-deps |
-  sudo apt-get update
-  sudo apt-get install -y \
-    pkg-config \
-    libglvnd-dev \
-    libgl1-mesa-dev \
-    libx11-dev \
-    libxcursor-dev \
-    libxrandr-dev \
-    libxinerama-dev \
-    libxi-dev
-#  libglvnd-dev содержит файл gl.pc, который требует pkg-config
-
 jobs:
   lint:
-    name: Lint and Vet
     runs-on: ubuntu-latest
     steps:
       - name: Install X11 / OpenGL headers
-        run: *install-deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            pkg-config libglvnd-dev libgl1-mesa-dev \
+            libx11-dev libxcursor-dev libxrandr-dev \
+            libxinerama-dev libxi-dev
 
       - uses: actions/checkout@v4
       - name: Set up Go
         uses: actions/setup-go@v4
-        with:
-          go-version: '1.22'
+        with: { go-version: '1.22' }
 
-      - name: Check formatting
-        run: go fmt ./...
-      - name: Run go vet
-        run: go vet ./...
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v4
+      - run: go fmt ./...
+      - run: go vet ./...
+      - uses: golangci/golangci-lint-action@v4
         with:
-          version: v1.59.0       # как у вас
+          version: v1.59.0
           args: run --timeout 5m
 
   test:
-    name: Test with Race Detector
     runs-on: ubuntu-latest
     steps:
       - name: Install X11 / OpenGL headers
-        run: *install-deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            pkg-config libglvnd-dev libgl1-mesa-dev \
+            libx11-dev libxcursor-dev libxrandr-dev \
+            libxinerama-dev libxi-dev
 
       - uses: actions/checkout@v4
       - name: Set up Go
         uses: actions/setup-go@v4
-        with:
-          go-version: '1.22'
+        with: { go-version: '1.22' }
 
-      - name: Run tests
-        run: go test ./... -race -coverprofile=coverage.out
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v3
+      - run: go test ./... -race -coverprofile=coverage.out
+      - uses: actions/upload-artifact@v3
         with:
           name: coverage-report
           path: coverage.out
