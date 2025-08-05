@@ -6,26 +6,35 @@ on:
   pull_request:
     branches: [main, develop]
 
-jobs:
-  setup-deps:
-    name: Setup System Dependencies
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install X11 and OpenGL headers
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libgl1-mesa-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev
+# ──────────────────────────────────────────────────────────────────────────────
+# общий shell-блок, чтобы не дублировать команды apt
+x-install-deps: &install-deps |
+  sudo apt-get update
+  sudo apt-get install -y \
+    pkg-config \
+    libglvnd-dev \
+    libgl1-mesa-dev \
+    libx11-dev \
+    libxcursor-dev \
+    libxrandr-dev \
+    libxinerama-dev \
+    libxi-dev
+#  libglvnd-dev содержит файл gl.pc, который требует pkg-config
 
+jobs:
   lint:
     name: Lint and Vet
     runs-on: ubuntu-latest
-    needs: setup-deps
     steps:
-      - uses: actions/checkout@v3
+      - name: Install X11 / OpenGL headers
+        run: *install-deps
+
+      - uses: actions/checkout@v4
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
           go-version: '1.22'
+
       - name: Check formatting
         run: go fmt ./...
       - name: Run go vet
@@ -33,19 +42,22 @@ jobs:
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v4
         with:
-          version: v1.59.0
+          version: v1.59.0       # как у вас
           args: run --timeout 5m
 
   test:
     name: Test with Race Detector
     runs-on: ubuntu-latest
-    needs: setup-deps
     steps:
-      - uses: actions/checkout@v3
+      - name: Install X11 / OpenGL headers
+        run: *install-deps
+
+      - uses: actions/checkout@v4
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
           go-version: '1.22'
+
       - name: Run tests
         run: go test ./... -race -coverprofile=coverage.out
       - name: Upload coverage report
